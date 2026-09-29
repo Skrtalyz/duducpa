@@ -63,7 +63,9 @@ export default function App() {
     if (window.location.hash === '#checkout') {
       window.history.back();
     } else {
-      window.location.hash = '';
+      const url = new URL(window.location.href);
+      url.hash = '';
+      window.history.replaceState(null, '', url.pathname + url.search);
     }
   };
 

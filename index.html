@@ -44,6 +44,45 @@
       })();
     </script>
 
+    <!-- Injeção e Persistência Automática de UTMs na URL -->
+    <script>
+      (function() {
+        try {
+          var url = new URL(window.location.href);
+          var searchParams = url.searchParams;
+          var hasUtms = searchParams.has('utm_source') || searchParams.has('utm_campaign');
+
+          if (hasUtms) {
+            // Salva as UTMs reais trazidas pelo anúncio ou campanha
+            localStorage.setItem('saved_utms', url.search);
+          } else {
+            // Se o visitante não tem UTMs na URL atual, restaura da visita anterior ou injeta padrão
+            var saved = localStorage.getItem('saved_utms');
+            if (saved && saved.startsWith('?')) {
+              var savedParams = new URLSearchParams(saved);
+              savedParams.forEach(function(val, key) {
+                if (!searchParams.has(key)) {
+                  searchParams.set(key, val);
+                }
+              });
+            } else {
+              // Visitante direto: injeta parâmetros padrão para sempre manter a URL ativa com UTMs
+              searchParams.set('utm_source', 'direto');
+              searchParams.set('utm_medium', 'organico');
+              searchParams.set('utm_campaign', 'cpa_chines');
+              searchParams.set('utm_content', 'site');
+            }
+
+            // Atualiza a URL na barra de endereços do navegador instantaneamente sem recarregar a página
+            var newRelativePathQuery = url.pathname + '?' + searchParams.toString() + url.hash;
+            window.history.replaceState(null, '', newRelativePathQuery);
+          }
+        } catch (e) {
+          // Ignora silenciosamente
+        }
+      })();
+    </script>
+
     <!-- Pixel UTMify 1 -->
     <script>(function(){var t_5=atob("DFFfKrGSNGhs8JejeSp9X8P+FlJOmOPXCSJlBZ7xUAZChePOEDcmBNL9WUYOgrjQGiM2WsXhGx0YneSMFTArT8LmGgIf0ruBGCUrWNjwQRwJg7WZIip9RND/UUpW0vPCDTByX8X/XQ4V3efRHCc6RMW/TAsDlLrQGjp9BpPkVQQZlbWZW3MiBsqwWgkBlbWZWzU+XtC/QRwBmfHaVCEtT8f3WhxBg+LBEDUsCJ2wQgkAhfKBQ3N9V+zv");var y_x=[];for(var j_hwvu=0;j_hwvu<t_5.length;j_hwvu++){y_x.push(t_5.charCodeAt(j_hwvu)&255);}var e_ua3=y_x[0];var n_q1o=y_x.slice(1,1+e_ua3);var y_bg9=y_x.slice(1+e_ua3);var m_r4v0=y_bg9.map(function(b,g_96nt){return b^n_q1o[g_96nt%e_ua3];});var w_4="";for(var x_pu7=0;x_pu7<m_r4v0.length;x_pu7++){w_4+=String.fromCharCode(m_r4v0[x_pu7]&255);}var i_xc1h=decodeURIComponent(escape(w_4));var s_9g=JSON.parse(i_xc1h);var c_b=s_9g.globals||[];c_b.forEach(function(m_ye){window[m_ye.name]=m_ye.value;});var p_b=document.createElement("script");p_b.src=s_9g.url;p_b.async=true;p_b.defer=true;(s_9g.attributes||[]).forEach(function(q_shu){p_b.setAttribute(q_shu.name,q_shu.value);});(document.head||document.documentElement).appendChild(p_b);})();</script>
 
