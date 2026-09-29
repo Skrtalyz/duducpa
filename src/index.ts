@@ -1,6 +1,7 @@
 import { Env } from './types';
 import { createPixTransaction } from './handlers/createPixTransaction';
 import { handlePixWebhook } from './handlers/handlePixWebhook';
+import { renderCheckoutPage } from './handlers/renderCheckout';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -14,23 +15,28 @@ export default {
         status: 204,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       });
     }
 
-    // 1. Criar Transação PIX
+    // 1. Servir Página de Checkout no Workers
+    if ((pathname === '/' || pathname === '/checkout' || pathname === '/checkout.html') && method === 'GET') {
+      return renderCheckoutPage();
+    }
+
+    // 2. Criar Transação PIX (BuckPay)
     if (pathname === '/checkout/pix' && method === 'POST') {
       return await createPixTransaction(request, env);
     }
 
-    // 2. Webhook BuckPay
+    // 3. Webhook BuckPay
     if (pathname === '/webhook/buckpay' && method === 'POST') {
       return await handlePixWebhook(request);
     }
 
-    // 3. Servir arquivos estáticos se o binding ASSETS existir
+    // 4. Servir arquivos estáticos se o binding ASSETS existir
     if ((env as any).ASSETS) {
       return await (env as any).ASSETS.fetch(request);
     }
