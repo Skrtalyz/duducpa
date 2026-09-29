@@ -26,7 +26,13 @@ export async function createPixTransaction(
       cleanPhone = `55${cleanPhone}`;
     }
 
-    const token = env.BUCKPAY_TOKEN || 'sk_live_sua_chave_aqui';
+    const token = env.BUCKPAY_TOKEN;
+    if (!token) {
+      return jsonResponse({
+        success: false,
+        error: 'Variável de ambiente BUCKPAY_TOKEN não configurada no Cloudflare Worker.'
+      }, 500);
+    }
     const userAgent = env.BUCKPAY_USER_AGENT || 'Buckpay API';
     const webhookUrl = env.WEBHOOK_URL || 'https://dudutreinamentocpa.siteverificado.workers.dev/webhook/buckpay';
 
