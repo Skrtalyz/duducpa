@@ -1,0 +1,6 @@
+{
+  "name": "CPA Chinês & Comunidade VIP",
+  "description": "Método de Auto-Indicação e Farm de CPA Chinês com Comunidade e Networking ao vivo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
