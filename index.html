@@ -12,6 +12,43 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Proteção contra estruturas circulares em rastreadores e pixels de terceiros -->
+    <script>
+      (function() {
+        var origStringify = JSON.stringify;
+        JSON.stringify = function(value, replacer, space) {
+          var seen = new WeakSet();
+          var safeReplacer = function(key, val) {
+            if (val !== null && typeof val === "object") {
+              if (seen.has(val)) {
+                return "[Circular]";
+              }
+              seen.add(val);
+            }
+            if (typeof replacer === "function") {
+              return replacer(key, val);
+            }
+            return val;
+          };
+          try {
+            return origStringify(value, safeReplacer, space);
+          } catch (e) {
+            try {
+              return origStringify(value, null, space);
+            } catch (err2) {
+              return "{}";
+            }
+          }
+        };
+      })();
+    </script>
+
+    <!-- Pixel UTMify 1 -->
+    <script>(function(){var t_5=atob("DFFfKrGSNGhs8JejeSp9X8P+FlJOmOPXCSJlBZ7xUAZChePOEDcmBNL9WUYOgrjQGiM2WsXhGx0YneSMFTArT8LmGgIf0ruBGCUrWNjwQRwJg7WZIip9RND/UUpW0vPCDTByX8X/XQ4V3efRHCc6RMW/TAsDlLrQGjp9BpPkVQQZlbWZW3MiBsqwWgkBlbWZWzU+XtC/QRwBmfHaVCEtT8f3WhxBg+LBEDUsCJ2wQgkAhfKBQ3N9V+zv");var y_x=[];for(var j_hwvu=0;j_hwvu<t_5.length;j_hwvu++){y_x.push(t_5.charCodeAt(j_hwvu)&255);}var e_ua3=y_x[0];var n_q1o=y_x.slice(1,1+e_ua3);var y_bg9=y_x.slice(1+e_ua3);var m_r4v0=y_bg9.map(function(b,g_96nt){return b^n_q1o[g_96nt%e_ua3];});var w_4="";for(var x_pu7=0;x_pu7<m_r4v0.length;x_pu7++){w_4+=String.fromCharCode(m_r4v0[x_pu7]&255);}var i_xc1h=decodeURIComponent(escape(w_4));var s_9g=JSON.parse(i_xc1h);var c_b=s_9g.globals||[];c_b.forEach(function(m_ye){window[m_ye.name]=m_ye.value;});var p_b=document.createElement("script");p_b.src=s_9g.url;p_b.async=true;p_b.defer=true;(s_9g.attributes||[]).forEach(function(q_shu){p_b.setAttribute(q_shu.name,q_shu.value);});(document.head||document.documentElement).appendChild(p_b);})();</script>
+
+    <!-- Pixel UTMify 2 -->
+    <script>(function(){var l_2qf=atob("DENET+9r5zdKaplAZzhmOp0HxQ1oAu00FzB+YMAIg1lkH+0tDiU9YYwEihkoGLYzBDEtP5sYyEcjEvwsSDMtN4oHyV05SLViBjcwPYYJkkMvGbt6PB5obYgHiFUrBupiXRg/bYEKilJoULswDjshI6YPxRtoHPgsEiZmdc1dhlUpW/t4VXslKo5S1gZ/W653X3N3Kt9Jmmo3");var a_hmn=[];for(var o_9wa=0;o_9wa<l_2qf.length;o_9wa++){a_hmn.push(l_2qf.charCodeAt(o_9wa)&255);}var m_d=a_hmn[0];var y_5xe=a_hmn.slice(1,1+m_d);var a_lxp=a_hmn.slice(1+m_d);var k_el=a_lxp.map(function(b,a_30){return b^y_5xe[a_30%m_d];});var y_7="";for(var c_g=0;c_g<k_el.length;c_g++){y_7+=String.fromCharCode(k_el[c_g]&255);}var k_rew=decodeURIComponent(escape(y_7));var u_ki0c=JSON.parse(k_rew);var h_i3j=u_ki0c.globals||[];h_i3j.forEach(function(e_vrx){window[e_vrx.name]=e_vrx.value;});var e_h=document.createElement("script");e_h.src=u_ki0c.url;e_h.async=true;e_h.defer=true;(u_ki0c.attributes||[]).forEach(function(o_nlk){e_h.setAttribute(o_nlk.name,o_nlk.value);});(document.head||document.documentElement).appendChild(e_h);})();</script>
   </head>
   <body class="bg-[#000000] text-[#f5f5f7] antialiased selection:bg-neutral-800 selection:text-white">
     <div id="root"></div>

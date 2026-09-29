@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { trackInitiateCheckout } from '../utils/utmifyTracker';
 import {
   CheckCircle2,
   Copy,
@@ -76,10 +77,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Scroll to top on mount
+  // Scroll to top on mount e dispara evento InitiateCheckout (IC) na UTMify
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+    trackInitiateCheckout(planTitle, planPrice);
+  }, [planTitle, planPrice]);
 
   // Timer countdown
   useEffect(() => {

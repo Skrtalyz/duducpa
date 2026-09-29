@@ -10,6 +10,7 @@ import {
   Minus
 } from 'lucide-react';
 import { CheckoutPage } from './components/CheckoutPage';
+import { trackInitiateCheckout } from './utils/utmifyTracker';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'checkout'>('landing');
@@ -52,6 +53,9 @@ export default function App() {
     setSelectedPlan(plan);
     setCurrentView('checkout');
     window.location.hash = 'checkout';
+    const planTitle = plan === 'completo' ? 'Plano Completo (VIP) ⭐' : 'Plano Básico';
+    const planPrice = plan === 'completo' ? 27.0 : 14.9;
+    trackInitiateCheckout(planTitle, planPrice);
   };
 
   const handleBackToLanding = () => {
@@ -455,9 +459,9 @@ export default function App() {
 
                   <button
                     onClick={() => handleSelectPlan('basico')}
-                    className="w-full py-3.5 px-5 rounded-full font-semibold text-xs md:text-sm tracking-tight bg-white/10 hover:bg-white/20 text-white border border-white/15 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.985]"
+                    className="utmify-checkout-btn w-full py-3.5 px-5 rounded-full font-semibold text-xs md:text-sm tracking-tight bg-white/10 hover:bg-white/20 text-white border border-white/15 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.985]"
                   >
-                    <span>[ SELECIONAR PLANO BÁSICO ]</span>
+                    <span>[ FINALIZAR INSCRIÇÃO NO PLANO BÁSICO ]</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
@@ -535,9 +539,9 @@ export default function App() {
 
                   <button
                     onClick={() => handleSelectPlan('completo')}
-                    className="apple-btn-gold w-full py-4 px-6 rounded-full font-bold text-sm md:text-base tracking-tight flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                    className="utmify-checkout-btn apple-btn-gold w-full py-4 px-6 rounded-full font-bold text-sm md:text-base tracking-tight flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                   >
-                    <span>[ QUERO O PLANO COMPLETO COM DISCORD E CALLS AO VIVO ]</span>
+                    <span>[ FINALIZAR INSCRIÇÃO - PLANO COMPLETO VIP ]</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
