@@ -2,12 +2,11 @@ name = "dudutreinamentocpa"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 
-# Servir os arquivos estáticos do checkout
+# Servir a aplicação completa compilada (Landing Page + Checkout)
 [assets]
-directory = "./public"
+directory = "./dist"
 binding = "ASSETS"
 
-# Variáveis da BuckPay (Recomenda-se usar 'wrangler secret put BUCKPAY_TOKEN' em produção)
 [vars]
 BUCKPAY_TOKEN = "sk_live_sua_chave_aqui"
 BUCKPAY_USER_AGENT = "Buckpay API"

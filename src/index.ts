@@ -1,7 +1,6 @@
 import { Env } from './types';
 import { createPixTransaction } from './handlers/createPixTransaction';
 import { handlePixWebhook } from './handlers/handlePixWebhook';
-import { renderCheckoutPage } from './handlers/renderCheckout';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -21,29 +20,24 @@ export default {
       });
     }
 
-    // 1. Servir Página de Checkout no Workers
-    if ((pathname === '/' || pathname === '/checkout' || pathname === '/checkout.html') && method === 'GET') {
-      return renderCheckoutPage();
-    }
-
-    // 2. Criar Transação PIX (BuckPay)
+    // 1. API: Criar Transação PIX (BuckPay)
     if (pathname === '/checkout/pix' && method === 'POST') {
       return await createPixTransaction(request, env);
     }
 
-    // 3. Webhook BuckPay
+    // 2. API: Webhook BuckPay
     if (pathname === '/webhook/buckpay' && method === 'POST') {
       return await handlePixWebhook(request);
     }
 
-    // 4. Servir arquivos estáticos se o binding ASSETS existir
+    // 3. Servir o Site Completo (Landing Page + Assets)
     if ((env as any).ASSETS) {
       return await (env as any).ASSETS.fetch(request);
     }
 
-    return new Response(JSON.stringify({ error: 'Endpoint não encontrado.' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    return new Response('Site carregado com sucesso. Para ver os arquivos visuais, certifique-se de que os assets foram compilados no deploy.', {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   },
 };
