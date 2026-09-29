@@ -1,0 +1,14 @@
+name = "dudutreinamentocpa"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# Servir os arquivos estáticos do checkout
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Variáveis da BuckPay (Recomenda-se usar 'wrangler secret put BUCKPAY_TOKEN' em produção)
+[vars]
+BUCKPAY_TOKEN = "sk_live_sua_chave_aqui"
+BUCKPAY_USER_AGENT = "Buckpay API"
+WEBHOOK_URL = "https://dudutreinamentocpa.siteverificado.workers.dev/webhook/buckpay"

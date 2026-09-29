@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout Seguro PIX - BuckPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070709;
+      --card-bg: rgba(18, 18, 22, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: #f59e0b;
+      --text: #f5f5f7;
+      --text-muted: #86868b;
+      --emerald: #10b981;
+      --gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient background glows */
+    .glow-1 {
+      position: fixed;
+      top: -100px;
+      left: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+      filter: blur(80px);
+      pointer-events-none;
+      z-index: 0;
+    }
+
+    .glow-2 {
+      position: fixed;
+      bottom: -100px;
+      right: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+      filter: blur(80px);
+      pointer-events-none;
+      z-index: 0;
+    }
+
+    .checkout-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 540px;
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 36px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #d1d1d6;
+      margin-bottom: 6px;
+    }
+
+    label span.req {
+      color: #f43f5e;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
+      width: 100%;
+      background: #131317;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #ffffff;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+
+    .pix-method-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.03) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      margin: 20px 0 24px 0;
+    }
+
+    .pix-method-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pix-tag {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .pix-text-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .pix-text-sub {
+      font-size: 11px;
+      color: #10b981;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      border-radius: 9999px;
+      border: none;
+      background: linear-gradient(180deg, #fde047 0%, #ca8a04 100%);
+      color: #000000;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(202, 138, 4, 0.35);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 25px rgba(202, 138, 4, 0.5);
+    }
+
+    .btn-submit:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Error alert */
+    .alert-error {
+      display: none;
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    /* Container do PIX */
+    #pix-container {
+      display: none;
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .timer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fbbf24;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .qr-frame {
+      display: inline-block;
+      padding: 16px;
+      background: #ffffff;
+      border-radius: 22px;
+      border: 3px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.35);
+      margin: 16px 0;
+    }
+
+    .qr-frame img {
+      width: 200px;
+      height: 200px;
+      display: block;
+    }
+
+    .pix-code-box {
+      margin-top: 16px;
+    }
+
+    .pix-code-input {
+      width: 100%;
+      background: #141417;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-bottom: 10px;
+      text-overflow: ellipsis;
+    }
+
+    .btn-copy {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-copy.copied {
+      background: #10b981;
+      color: #000000;
+      border-color: #10b981;
+    }
+
+    .waiting-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #10b981;
+    }
+
+    /* Container de Pagamento Confirmado */
+    #success-container {
+      display: none;
+      text-align: center;
+      padding: 20px 0;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    }
+
+    @media (max-width: 480px) {
+      .checkout-container {
+        padding: 28px 20px;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <div class="checkout-container">
+    <!-- FORM VIEW -->
+    <div id="form-container">
+      <div class="header">
+        <div class="header-badge">
+          <span class="pulse-dot"></span>
+          <span>Checkout Oficial PIX</span>
+        </div>
+        <h1>Finalizar Inscrição</h1>
+        <p class="subtitle">Liberação automática em menos de 10 segundos via PIX</p>
+      </div>
+
+      <div id="error-box" class="alert-error"></div>
+
+      <form id="checkout-form">
+        <div class="form-group">
+          <label>Nome Completo <span class="req">*</span></label>
+          <input type="text" id="buyer_name" placeholder="Ex: João da Silva" required>
+        </div>
+
+        <div class="form-group">
+          <label>E-mail para Acesso <span class="req">*</span></label>
+          <input type="email" id="buyer_email" placeholder="seuemail@exemplo.com" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>CPF <span class="req">*</span></label>
+            <input type="text" id="buyer_document" placeholder="000.000.000-00" maxlength="14" required>
+          </div>
+
+          <div class="form-group">
+            <label>Celular / WhatsApp <span class="req">*</span></label>
+            <input type="tel" id="buyer_phone" placeholder="(11) 99999-9999" maxlength="15" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Produto</label>
+            <input type="text" id="product_name" value="Treinamento CPA Chinês" required>
+          </div>
+
+          <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="text" id="amount_display" value="R$ 27,00" required>
+            <input type="hidden" id="amount_cents" value="2700">
+          </div>
+        </div>
+
+        <div class="pix-method-badge">
+          <div class="pix-method-info">
+            <div class="pix-tag">PIX</div>
+            <div>
+              <p class="pix-text-title">Pagamento Instantâneo</p>
+              <p class="pix-text-sub">QR Code gerado na hora</p>
+            </div>
+          </div>
+          <span id="badge-price" style="font-weight: 800; font-size: 15px; color: #ffffff;">R$ 27,00</span>
+        </div>
+
+        <button type="submit" id="btn-submit" class="btn-submit">
+          <span>Gerar PIX e Concluir</span>
+          <span>→</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- PIX QR CODE & CODE VIEW -->
+    <div id="pix-container">
+      <div class="timer-badge">
+        <span>⏱️ Válido por:</span>
+        <span id="countdown-timer">15:00</span>
+      </div>
+
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Escaneie ou Copie o Código PIX</h2>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+        Total: <strong id="pix-total-display" style="color: #ffffff;">R$ 27,00</strong>
+      </p>
+
+      <div class="qr-frame">
+        <img id="qr-image" src="" alt="QR Code PIX">
+      </div>
+
+      <div class="waiting-status">
+        <span class="pulse-dot"></span>
+        <span>Aguardando confirmação do pagamento...</span>
+      </div>
+
+      <div class="pix-code-box">
+        <input type="text" id="pix-code-input" class="pix-code-input" readonly>
+        <button type="button" id="btn-copy-pix" class="btn-copy">
+          <span id="copy-text">Copiar Código PIX (Copia e Cola)</span>
+        </button>
+      </div>
+
+      <div style="margin-top: 24px; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; text-align: left; font-size: 12px; color: #a1a1a6; line-height: 1.6;">
+        <p style="color: #ffffff; font-weight: 700; margin-bottom: 4px;">Como pagar:</p>
+        <p>1. Abra o aplicativo do seu banco.</p>
+        <p>2. Acesse a área PIX e escolha <strong>Ler QR Code</strong> ou <strong>PIX Copia e Cola</strong>.</p>
+        <p>3. Conclua o pagamento e aguarde a aprovação nesta tela.</p>
+      </div>
+    </div>
+
+    <!-- SUCCESS VIEW -->
+    <div id="success-container">
+      <div class="success-icon">✓</div>
+      <div class="header-badge" style="background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #10b981;">
+        <span>Pagamento Confirmado!</span>
+      </div>
+      <h2 style="font-size: 24px; font-weight: 800; margin: 12px 0 8px 0;">Acesso Liberado com Sucesso</h2>
+      <p style="font-size: 13px; color: #a1a1a6; line-height: 1.6; max-width: 400px; margin: 0 auto 24px auto;">
+        Identificamos seu pagamento via BuckPay. Enviamos todos os dados de acesso e bônus para o seu e-mail cadastrado.
+      </p>
+      <div style="padding: 16px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 16px; font-size: 13px; color: #d1fae5;">
+        <span>Parabéns! Você já pode acessar a área de membros.</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/checkout.js"></script>
+</body>
+</html>
