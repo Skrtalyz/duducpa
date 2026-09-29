@@ -15,58 +15,14 @@ import {
   AlertCircle,
   RefreshCw,
   QrCode,
-  CheckCircle
+  CheckCircle,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 
 interface CheckoutPageProps {
   plan: 'basico' | 'completo';
   onBack: () => void;
-}
-
-// CRC16 CCITT for official BR Code / PIX calculation
-function crc16(payload: string): string {
-  let crc = 0xffff;
-  for (let i = 0; i < payload.length; i++) {
-    crc ^= payload.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      if ((crc & 0x8000) !== 0) {
-        crc = (crc << 1) ^ 0x1021;
-      } else {
-        crc = crc << 1;
-      }
-      crc &= 0xffff;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, '0');
-}
-
-function generatePixPayload(key: string, name: string, city: string, amount: number, txid: string = 'CPAPAY') {
-  const formatField = (id: string, value: string) => {
-    const len = value.length.toString().padStart(2, '0');
-    return `${id}${len}${value}`;
-  };
-
-  const merchantAccountInfo =
-    formatField('00', 'br.gov.bcb.pix') +
-    formatField('01', key);
-
-  const amountStr = amount.toFixed(2);
-  const additionalData = formatField('05', txid);
-
-  const raw =
-    formatField('00', '01') +
-    formatField('26', merchantAccountInfo) +
-    formatField('52', '0000') +
-    formatField('53', '986') +
-    formatField('54', amountStr) +
-    formatField('58', 'BR') +
-    formatField('59', name.substring(0, 25)) +
-    formatField('60', city.substring(0, 15)) +
-    formatField('62', additionalData) +
-    '6304';
-
-  const checksum = crc16(raw);
-  return raw + checksum;
 }
 
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
@@ -81,15 +37,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
   // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
   const [discordNick, setDiscordNick] = useState('');
   const [phone, setPhone] = useState('');
 
   // UI & Validation states
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; email?: string; cpf?: string; phone?: string; api?: string }>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutos
   const [pixCode, setPixCode] = useState('');
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Scroll to top on mount
@@ -106,7 +65,22 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
     return () => clearInterval(interval);
   }, [step]);
 
-  // Phone input formatting
+  // CPF input formatting (000.000.000-00)
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '').slice(0, 11);
+    if (value.length > 9) {
+      value = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6, 9)}-${value.slice(9)}`;
+    } else if (value.length > 6) {
+      value = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6)}`;
+    } else if (value.length > 3) {
+      value = `${value.slice(0, 3)}.${value.slice(3)}`;
+    }
+    setCpf(value);
+    if (errors.cpf) setErrors((prev) => ({ ...prev, cpf: undefined }));
+    if (errors.api) setErrors((prev) => ({ ...prev, api: undefined }));
+  };
+
+  // Phone input formatting ((00) 00000-0000)
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
@@ -119,6 +93,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
       value = `(${value}`;
     }
     setPhone(value);
+    if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+    if (errors.api) setErrors((prev) => ({ ...prev, api: undefined }));
   };
 
   const formatTimer = (seconds: number) => {
@@ -127,9 +103,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleGeneratePix = (e: React.FormEvent) => {
+  const handleGeneratePix = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: { name?: string; email?: string } = {};
+    const newErrors: { name?: string; email?: string; cpf?: string; phone?: string; api?: string } = {};
 
     if (!name.trim()) {
       newErrors.name = 'Informe seu nome completo.';
@@ -143,6 +119,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
       newErrors.email = 'Digite um e-mail válido.';
     }
 
+    const cleanCpf = cpf.replace(/\D/g, '');
+    if (!cleanCpf) {
+      newErrors.cpf = 'Informe seu CPF (obrigatório para emissão do PIX).';
+    } else if (cleanCpf.length !== 11) {
+      newErrors.cpf = 'CPF inválido. Digite os 11 números do CPF.';
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone) {
+      newErrors.phone = 'Informe seu celular / WhatsApp.';
+    } else if (cleanPhone.length < 10) {
+      newErrors.phone = 'Informe o DDD e o número completo.';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -151,20 +141,56 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
     setErrors({});
     setIsGenerating(true);
 
-    setTimeout(() => {
-      const generated = generatePixPayload(
-        'pagamentos@cpachines.com',
-        'CPA CHINES TREINAMENTO',
-        'SAO PAULO',
-        planPrice,
-        `ORD${Math.floor(100000 + Math.random() * 900000)}`
-      );
-      setPixCode(generated);
+    try {
+      // Chama o endpoint da BuckPay no Cloudflare Worker
+      const apiUrl = window.location.hostname.includes('workers.dev')
+        ? '/checkout/pix'
+        : 'https://dudutreinamentocpa.siteverificado.workers.dev/checkout/pix';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Math.round(planPrice * 100),
+          buyer_name: name.trim(),
+          buyer_email: email.trim(),
+          buyer_document: cleanCpf,
+          buyer_phone: cleanPhone,
+          product_name: isVip ? 'Treinamento CPA Chinês - VIP' : 'Treinamento CPA Chinês - Básico',
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        const errorMsg = typeof data.error === 'string'
+          ? data.error
+          : (data.error?.message || data.message || 'Erro ao processar transação PIX na BuckPay.');
+        throw new Error(errorMsg);
+      }
+
+      setPixCode(data.pix_code);
+      if (data.qrcode_base64) {
+        setQrImage(data.qrcode_base64.startsWith('data:image')
+          ? data.qrcode_base64
+          : `data:image/png;base64,${data.qrcode_base64}`
+        );
+      }
+      if (data.transaction_id) {
+        setTransactionId(data.transaction_id);
+      }
+
       setIsGenerating(false);
       setStep('pix');
       setTimeLeft(900);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 600);
+    } catch (err: any) {
+      console.error('Erro BuckPay:', err);
+      setIsGenerating(false);
+      setErrors({
+        api: err.message || 'Falha ao conectar à API da BuckPay. Verifique se o CPF e o telefone estão corretos.'
+      });
+    }
   };
 
   const handleCopyPix = () => {
@@ -281,17 +307,31 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
             {/* QR Code Container com Efeito Glow Moderno */}
             <div className="my-6 flex flex-col items-center">
               <div className="p-4 bg-white rounded-3xl shadow-2xl border-2 border-emerald-400/40 pulse-glow-emerald inline-block">
-                <QRCodeSVG
-                  value={pixCode}
-                  size={210}
-                  level="M"
-                  includeMargin={false}
-                />
+                {qrImage ? (
+                  <img
+                    src={qrImage}
+                    alt="QR Code PIX BuckPay"
+                    className="w-[210px] h-[210px] object-contain block rounded-xl"
+                  />
+                ) : (
+                  <QRCodeSVG
+                    value={pixCode}
+                    size={210}
+                    level="M"
+                    includeMargin={false}
+                  />
+                )}
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-xs text-emerald-400 font-mono">
+              {transactionId && (
+                <p className="mt-2 text-[10px] text-[#71717a] font-mono">
+                  ID BuckPay: {transactionId}
+                </p>
+              )}
+
+              <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400 font-mono">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                <span>Aguardando transferência via PIX...</span>
+                <span>Aguardando transferência via PIX no seu banco...</span>
               </div>
             </div>
 
@@ -387,6 +427,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
               </div>
 
               <form onSubmit={handleGeneratePix} className="space-y-4">
+                {/* Alerta de Erro da API BuckPay */}
+                {errors.api && (
+                  <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block text-rose-200 mb-0.5 font-semibold">Aviso da BuckPay:</strong>
+                      <span>{errors.api}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Nome Completo */}
                 <div>
                   <label className="text-xs font-semibold text-[#f5f5f7] block mb-2">
@@ -451,31 +502,43 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
                   )}
                 </div>
 
-                {/* Grid 2 colunas para campos opcionais */}
+                {/* Grid 2 colunas: CPF e WhatsApp */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                  {/* Nick do Discord (Opcional) */}
+                  {/* CPF Obrigatório */}
                   <div>
                     <label className="text-xs font-semibold text-[#f5f5f7] flex items-center gap-1.5 mb-2">
-                      <span>Nick do Discord</span>
-                      <span className="text-[10px] text-[#86868b] font-normal">(Opcional)</span>
+                      <span>CPF</span>
+                      <span className="text-rose-400">*</span>
+                      <span className="text-[10px] text-[#86868b] font-normal">(Exigência PIX)</span>
                     </label>
                     <div className="relative group">
-                      <MessageSquare className="w-4 h-4 text-[#86868b] group-focus-within:text-white absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" />
+                      <ShieldCheck className="w-4 h-4 text-[#86868b] group-focus-within:text-white absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" />
                       <input
                         type="text"
-                        value={discordNick}
-                        onChange={(e) => setDiscordNick(e.target.value)}
-                        placeholder="usuario#0000"
-                        className="w-full bg-[#131316] border border-white/10 focus:border-amber-400/80 focus:ring-2 focus:ring-amber-400/20 rounded-2xl py-3 pl-10 pr-3.5 text-sm text-white placeholder-[#55555a] focus:outline-none transition-all"
+                        value={cpf}
+                        onChange={handleCpfChange}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        className={`w-full bg-[#131316] border ${
+                          errors.cpf
+                            ? 'border-rose-500 ring-1 ring-rose-500'
+                            : 'border-white/10 focus:border-amber-400/80 focus:ring-2 focus:ring-amber-400/20'
+                        } rounded-2xl py-3 pl-10 pr-3.5 text-sm text-white placeholder-[#55555a] focus:outline-none transition-all`}
                       />
                     </div>
+                    {errors.cpf && (
+                      <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.cpf}
+                      </p>
+                    )}
                   </div>
 
-                  {/* WhatsApp / Celular (Opcional) */}
+                  {/* WhatsApp / Celular */}
                   <div>
                     <label className="text-xs font-semibold text-[#f5f5f7] flex items-center gap-1.5 mb-2">
                       <span>WhatsApp / Celular</span>
-                      <span className="text-[10px] text-[#86868b] font-normal">(Opcional)</span>
+                      <span className="text-rose-400">*</span>
                     </label>
                     <div className="relative group">
                       <Phone className="w-4 h-4 text-[#86868b] group-focus-within:text-white absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" />
@@ -485,9 +548,37 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ plan, onBack }) => {
                         onChange={handlePhoneChange}
                         placeholder="(11) 99999-9999"
                         maxLength={15}
-                        className="w-full bg-[#131316] border border-white/10 focus:border-amber-400/80 focus:ring-2 focus:ring-amber-400/20 rounded-2xl py-3 pl-10 pr-3.5 text-sm text-white placeholder-[#55555a] focus:outline-none transition-all"
+                        className={`w-full bg-[#131316] border ${
+                          errors.phone
+                            ? 'border-rose-500 ring-1 ring-rose-500'
+                            : 'border-white/10 focus:border-amber-400/80 focus:ring-2 focus:ring-amber-400/20'
+                        } rounded-2xl py-3 pl-10 pr-3.5 text-sm text-white placeholder-[#55555a] focus:outline-none transition-all`}
                       />
                     </div>
+                    {errors.phone && (
+                      <p className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nick do Discord (Opcional) */}
+                <div>
+                  <label className="text-xs font-semibold text-[#f5f5f7] flex items-center gap-1.5 mb-2">
+                    <span>Nick do Discord</span>
+                    <span className="text-[10px] text-[#86868b] font-normal">(Opcional)</span>
+                  </label>
+                  <div className="relative group">
+                    <MessageSquare className="w-4 h-4 text-[#86868b] group-focus-within:text-white absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" />
+                    <input
+                      type="text"
+                      value={discordNick}
+                      onChange={(e) => setDiscordNick(e.target.value)}
+                      placeholder="usuario#0000"
+                      className="w-full bg-[#131316] border border-white/10 focus:border-amber-400/80 focus:ring-2 focus:ring-amber-400/20 rounded-2xl py-3 pl-10 pr-3.5 text-sm text-white placeholder-[#55555a] focus:outline-none transition-all"
+                    />
                   </div>
                 </div>
 
