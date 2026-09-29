@@ -134,8 +134,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
 
+      let errorMsg = 'Erro ao processar PIX no servidor.';
+      if (typeof data.error === 'string') {
+        errorMsg = data.error;
+      } else if (data.error && typeof data.error === 'object') {
+        errorMsg = data.error.message || JSON.stringify(data.error);
+      } else if (data.message) {
+        errorMsg = typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
+      }
+
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Erro ao gerar PIX.');
+        throw new Error(errorMsg);
       }
 
       displayPix(data);
