@@ -8,6 +8,5 @@ directory = "./dist"
 binding = "ASSETS"
 
 [vars]
-BUCKPAY_TOKEN = "sk_live_sua_chave_aqui"
 BUCKPAY_USER_AGENT = "Buckpay API"
 WEBHOOK_URL = "https://dudutreinamentocpa.siteverificado.workers.dev/webhook/buckpay"
